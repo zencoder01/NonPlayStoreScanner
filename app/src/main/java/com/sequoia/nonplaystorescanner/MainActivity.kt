@@ -8,22 +8,28 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.ProgressBar
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.sequoia.nonplaystorescanner.databinding.ActivityMainBinding
-import com.sequoia.nonplaystorescanner.databinding.ItemAppBinding
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var binding: ActivityMainBinding
     private lateinit var adapter: AppAdapter
+    private lateinit var recyclerView: RecyclerView
+    private lateinit var emptyView: TextView
+    private lateinit var progressBar: ProgressBar
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        setContentView(R.layout.activity_main)
+
+        recyclerView = findViewById(R.id.recyclerView)
+        emptyView = findViewById(R.id.emptyView)
+        progressBar = findViewById(R.id.progressBar)
 
         setupRecyclerView()
         loadApps()
@@ -33,8 +39,8 @@ class MainActivity : AppCompatActivity() {
         adapter = AppAdapter(packageManager, mutableListOf()) { appInfo ->
             showUninstallDialog(appInfo)
         }
-        binding.recyclerView.layoutManager = LinearLayoutManager(this)
-        binding.recyclerView.adapter = adapter
+        recyclerView.layoutManager = LinearLayoutManager(this)
+        recyclerView.adapter = adapter
     }
 
     private fun loadApps() {
@@ -43,8 +49,8 @@ class MainActivity : AppCompatActivity() {
             isNonPlayStoreApp(app) && (app.flags and ApplicationInfo.FLAG_SYSTEM) == 0
         }
         adapter.updateApps(nonPlayStoreApps)
-        binding.emptyView.visibility = if (nonPlayStoreApps.isEmpty()) View.VISIBLE else View.GONE
-        binding.progressBar.visibility = View.GONE
+        emptyView.visibility = if (nonPlayStoreApps.isEmpty()) View.VISIBLE else View.GONE
+        progressBar.visibility = View.GONE
     }
 
     private fun isNonPlayStoreApp(appInfo: ApplicationInfo): Boolean {
@@ -101,18 +107,22 @@ class AppAdapter(
     private val onClick: (ApplicationInfo) -> Unit
 ) : RecyclerView.Adapter<AppAdapter.AppViewHolder>() {
 
-    inner class AppViewHolder(val binding: ItemAppBinding) : RecyclerView.ViewHolder(binding.root) {
+    inner class AppViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val appIcon: ImageView = view.findViewById(R.id.appIcon)
+        val appName: TextView = view.findViewById(R.id.appName)
+        val installerName: TextView = view.findViewById(R.id.installerName)
+
         fun bind(appInfo: ApplicationInfo) {
-            binding.appIcon.setImageDrawable(pm.getApplicationIcon(appInfo))
-            binding.appName.text = pm.getApplicationLabel(appInfo)
-            binding.installerName.text = "From: ${MainActivity.getInstallerName(pm, appInfo)}"
-            binding.root.setOnClickListener { onClick(appInfo) }
+            appIcon.setImageDrawable(pm.getApplicationIcon(appInfo))
+            appName.text = pm.getApplicationLabel(appInfo)
+            installerName.text = "From: ${MainActivity.getInstallerName(pm, appInfo)}"
+            itemView.setOnClickListener { onClick(appInfo) }
         }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AppViewHolder {
-        val binding = ItemAppBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        return AppViewHolder(binding)
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_app, parent, false)
+        return AppViewHolder(view)
     }
 
     override fun onBindViewHolder(holder: AppViewHolder, position: Int) {
